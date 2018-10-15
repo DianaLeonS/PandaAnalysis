@@ -8,11 +8,11 @@ parser = argparse.ArgumentParser(description='plot stuff')
 parser.add_argument('--outdir',metavar='outdir',type=str,default='.')
 parser.add_argument('--cut',metavar='cut',type=str,default='1==1')
 parser.add_argument('--region',metavar='region',type=str,default=None)
+parser.add_argument('--analysis',metavar='analysis',type=str,default=None)
 parser.add_argument('--tt',metavar='tt',type=str,default='')
 parser.add_argument('--bdtcut',type=float,default=None)
 parser.add_argument('--masscut1',type=float,default=None)
 parser.add_argument('--masscut2',type=float,default=None)
-#parser.add_argument('--fromlimit',type=bool,default=False)
 parser.add_argument('--fromlimit',action='store_true',help='enable direct plotting from fitting ntuple')
 args = parser.parse_args()
 lumi = 35800.
@@ -26,22 +26,22 @@ import ROOT as root
 root.gROOT.SetBatch()
 from PandaCore.Tools.Misc import *
 import PandaCore.Tools.Functions
-#import PandaAnalysis.SuperMonoJet.BoostedSelection as sel                            
-import PandaAnalysis.LeptonicMonoTop.LeptonicMonotopSelection_TEST as sel                            
 from PandaCore.Drawers.plot_utility import *
+import PandaAnalysis.LeptonicMonoTop.LeptonicMonotopSelection_Oct14 as sel
 
 ### SET GLOBAL VARIABLES ###
 if not args.fromlimit:
     #baseDir = getenv('PANDA_FLATDIR')+'/'
-    baseDir = "/uscms_data/d3/lpcmetx/panda/80X-v1dot1/lepmonotop/flat/"
+    baseDir = '/uscms_data/d3/fdolek/panda/80X-v1.6/lep_monotop/flat/'
     dataDir = baseDir
     ### DEFINE REGIONS ###
     cut = tAND(sel.cuts[args.region],args.cut)
 else:
-    #baseDir = getenv('PANDA_FLATDIR')+'/limits/'
-    baseDir = "/uscms_data/d3/lpcmetx/panda/80X-v1dot1/lepmonotop/flat/"
+    baseDir = '/uscms_data/d3/fdolek/panda/80X-v1.6/lep_monotop/flat/'
     dataDir = baseDir
     cut = '1==1'
+
+print "PLOTTER: input directory is:", baseDir
 
 if args.bdtcut:
     cut = tAND(cut,'top_ecf_bdt>%f'%args.bdtcut)
@@ -51,10 +51,10 @@ if args.masscut1 and args.masscut2:
 if args.masscut1:
     cut = tAND(cut,'fj1MSD>%f'%args.masscut1)
 
-### LOAD PLOTTING UTILITY ###
+### LOAD PLOTTING UTILITY cCc
 plot = PlotUtility()
 plot.Stack(True)
-plot.Ratio(False)
+plot.Ratio(True)
 plot.FixRatio(0.4)
 if 'qcd' in region:
     plot.FixRatio(1)
@@ -88,80 +88,71 @@ def normalPlotting(region):
     PInfo('cut',plot.cut)
     PInfo('weight',plot.mc_weight)
 
-    #plot.add_systematic('QCD scale','scaleUp','scaleDown',root.kRed+2)
+    #plot.add_systematic('QCD scale','scaleUp','scaleDown',root.kRed+2) 
     #plot.add_systematic('PDF','pdfUp','pdfDown',root.kBlue+2)
 
     ### DEFINE PROCESSES ###
-    znunu        = Process('Z(#nu#nu)+jets',root.kZjets,None,root.kCyan-9)
     zjets         = Process('Z+jets',root.kZjets,None,root.kCyan-9)
     wjets         = Process('W+jets',root.kWjets,None,root.kGreen-10)
     diboson       = Process('Diboson',root.kDiboson,None,root.kYellow-9)
-    ttbar         = Process('t#bar{t}',root.kTTbar,None,root.kOrange-4)
-    #ttg           = Process('t#bar{t}#gamma',root.kTTbar,root.kOrange-4)
+    ttbar1l       = Process('t#bar{t} 1l',root.kTTbar1l,None,root.kOrange-3)
+    ttbar2l       = Process('t#bar{t} 2l',root.kTTbar2l,None,root.kOrange-5)
     singletop     = Process('Single t',root.kST,None,root.kRed-9)
-    #singletopg    = Process('t#gamma',root.kST,root.kRed-9)
     qcd           = Process("QCD",root.kQCD,None,root.kMagenta-10)
-    #gjets         = Process('#gamma+jets',root.kGjets)
     data          = Process("Data",root.kData)
-    #signal        = Process('m_{V}=1.75 TeV, m_{#chi}=1 GeV',root.kSignal)
-    processes = [qcd,diboson,singletop,wjets,ttbar,zjets]
+    signal       = Process('m_{#phi}=1750.0 TeV, m_{#chi}=1 GeV',root.kSignal)
 
-    if 'qcd' in region:
-        processes = [diboson,singletop,wjets,ttbar,zjets,qcd]
-
-    ### ASSIGN FILES TO PROCESSES ###
-    if 'qcd' in region:
-        processes = [diboson,singletop,wjets,ttbar,zjets,qcd]
-    #if 'zee' or 'zmm' in region:
-        #processes = [qcd,diboson,singletop,ttbar,wjets,zjets]
-    if 'wen' or 'wmn' in region:
-        processes = [qcd,diboson,singletop,zjets,ttbar,wjets]
-    ### ASSIGN FILES TO PROCESSES ###
-    #if 'signal' in region or 'qcd' in region:
-    if 'signale' in region or 'qcd' in region:
-        processes = [qcd,zjets,singletop,ttbar,diboson,wjets,znunu]
-        znunu.add_file(baseDir+'ZtoNuNu.root')
+    processes = []
+    if 'tee' in region or 'tmm' in region: 
+        processes = [qcd,zjets,singletop,ttbar1l,ttbar2l,diboson,wjets] 
+    if 'wen' in region or 'wmn' in region or 'ten' in region or 'tmn' in region :
+        processes = [qcd,zjets,singletop,ttbar1l,ttbar2l,diboson,wjets]
+    if 'signale' in region or 'signalm' in region or 'qcd' in region: 
+        processes = [qcd,zjets,singletop,ttbar1l,ttbar2l,diboson,wjets]     
 
     zjets.add_file(baseDir+'ZJets.root')
     wjets.add_file(baseDir+'WJets.root')
     diboson.add_file(baseDir+'Diboson.root')
-    ttbar.add_file(baseDir+'TTbar%s.root'%(args.tt)); print 'TTbar%s.root'%(args.tt)
-    singletop.add_file(baseDir+'SingleTop.root')
+    ttbar1l.add_file(baseDir+'TTbar_L.root')
+    ttbar2l.add_file(baseDir+'TTbar_2L.root')
+    singletop.add_file(baseDir+'SingleTop.root')  
 
-    if any([x in region for x in ['signale','wmn','zmm','tmn','qcd']]):
+    if 'signale' in region or 'signalm' in region or 'wen' in region or 'wmn' in region or 'ten' in region or 'tmn' in region:
+        qcd.add_file(baseDir+'QCD.root')
+    
+    if any([x in region for x in ['signalm','wmn','tmm','tmn','qcd']]):
         if not blind:
-            data.add_file(dataDir+'MET.root')
-
-        data.additional_cut = sel.muTrigger
+            data.additional_cut = sel.muTrigger  
+            data.add_file(dataDir+'SingleMuon.root')
         lep='#mu'
-    elif any([x in region for x in ['wen','zee','ten']]):
+    elif any([x in region for x in ['signale','wen','tee','ten']]):
         data.additional_cut = sel.eleTrigger
         data.add_file(dataDir+'SingleElectron.root')
         lep='e'
 
     if not blind:
         processes.append(data)
-    if SIGNAL:
-        processes.append(signal)
+    if 'signale' in region or 'signalm' in region:  
+        SIGNAL=True
+        signal.add_file(baseDir+'Vector_MonoTop_Leptonic_Mphi_1750_Mchi_1.root')
+        processes.append(signale)                                                            
+        processes.append(signalm) 
     #    #processes.append(signal1)
 
     for p in processes:
-       #print "processess considered -> ", p
-        plot.add_process(p)
+       #print "processess considered -> ",
+       plot.add_process(p)  
 
-    recoilBins = [250,270,350,475,1000]
-    fatjetBins = [25,75,100,150,600]
+    recoilBins = [250,280,310,340,370,400,430,470,510,550,590,640,690,740,790,840,900,960,1020,1090,1160,1250,1400]
     nRecoilBins = len(recoilBins)-1
 
-    ### CHOOSE DISTRIBUTIONS, LABELS ###
-    #if 'signal' in region or 'qcd' in region:
-        #recoil=VDistribution("pfmet",recoilBins,"PF MET [GeV]","Events/GeV")
-
-    if 'signale' in region or 'qcd' in region:
-        recoil=VDistribution("pfmt",recoilBins,"PF MT [GeV]","Events/GeV")
-
+    ### CHOOSE DISTRIBUTIONS, LABELS ### 
+    if 'signale' in region or 'signalm' in region: 
+        recoil=VDistribution("pfmet",recoilBins,"PF MET [GeV]","Events/GeV")  
+        plot.add_distribution(FDistribution('dphipfmet',0,3.14,10,'min#Delta#phi(AK4 jet,E_{T}^{miss})','Events'))
+    
     elif any([x in region for x in ['wen','wmn','ten','tmn']]):
-        recoil=VDistribution("pfUWmag",recoilBins,"PF U(%s) [GeV]"%(lep),"Events/GeV")
+        recoil=VDistribution("pfmet",recoilBins,"PF MET(%s) [GeV]"%(lep),"Events/GeV")
         plot.add_distribution(FDistribution('mT',0,500,25,'Transverse Mass of W [GeV]','Events'))
         if not lep=="e":
             plot.add_distribution(FDistribution('muonPt[0]',0,400,15,'Leading %s p_{T} [GeV]'%lep,'Events/25 GeV'))
@@ -169,27 +160,23 @@ def normalPlotting(region):
         else:
             plot.add_distribution(FDistribution('electronPt[0]',0,400,15,'Leading %s p_{T} [GeV]'%lep,'Events/25 GeV'))
             plot.add_distribution(FDistribution('electronEta[0]',-2.5,2.5,10,'%s #eta'%lep,'Events'))
-        plot.add_distribution(FDistribution('dphipfUW',0,3.14,10,'min#Delta#phi(AK4 jet,E_{T}^{miss})','Events'))
+        #plot.add_distribution(FDistribution('dphipfUW',0,3.14,10,'min#Delta#phi(AK4 jet,E_{T}^{miss})','Events'))
+        #plot.add_distribution(FDistribution('jetNMBtags',0,5,5,'nmbtag jets','Events'))
+        plot.add_distribution(FDistribution('jetNBtags',0,5,5,'nbtag jets','Events'))
         
-    elif any([x in region for x in ['zee','zmm']]):
-        recoil=VDistribution("pfUZmag",recoilBins,"PF U(%s%s) [GeV]"%(lep,lep),"Events/GeV")
-        #plot.add_distribution(FDistribution('diLepMass',60,120,20,'m_{ll} [GeV]','Events/3 GeV'))
+    elif any([x in region for x in ['tee','tmm']]):
+        recoil=VDistribution("pfmet",recoilBins,"PF MET(%s%S) [GeV]"%(lep,lep),"Events/GeV")
+        plot.add_distribution(FDistribution('diLepMass',60,120,20,'m_{ll} [GeV]','Events/3 GeV'))
         if not lep=="e":
             plot.add_distribution(FDistribution('muonPt[0]',0,400,15,'Leading %s p_{T} [GeV]'%lep,'Events/25 GeV'))
             plot.add_distribution(FDistribution('muonEta[0]',-2.5,2.5,10,'%s #eta'%lep,'Events'))
         else:
             plot.add_distribution(FDistribution('electronPt[0]',0,400,15,'Leading %s p_{T} [GeV]'%lep,'Events/25 GeV'))
             plot.add_distribution(FDistribution('electronEta[0]',-2.5,2.5,10,'%s #eta'%lep,'Events'))
-        plot.add_distribution(FDistribution('dphipfUZ',0,3.14,10,'min#Delta#phi(AK4 jet,E_{T}^{miss})','Events'))
 
-    elif region=='pho':
-        recoil=VDistribution("pfUAmag",recoilBins,"PF U(#gamma) [GeV]","Events/GeV")
-        plot.add_distribution(FDistribution('loosePho1Pt',0,1000,20,'Leading #gamma p_{T} [GeV]','Events/50 GeV'))
-        plot.add_distribution(FDistribution('loosePho1Eta',-2.5,2.5,10,'Leading #gamma #eta','Events/bin'))
-        plot.add_distribution(FDistribution('dphipfUA',0,3.14,10,'min#Delta#phi(jet,E_{T}^{miss})','Events'))
-  
+
     #recoil.calc_chi2 = True
-    plot.add_distribution(recoil)
+    plot.add_distribution(recoil) 
 
     #global variable
     #plot.add_distribution(FDistribution('nJet',-0.5,9.5,9,'N_{jet}','Events'))
@@ -199,80 +186,67 @@ def normalPlotting(region):
     #global hadronic
     #plot.add_distribution(FDistribution('jetPt[0]',0,1000,20,'Leading Jet p_{T} [GeV]','Events/50 GeV'))
     #plot.add_distribution(FDistribution('jetPt[1]',0,1000,20,'Subleading Jet p_{T} [GeV]','Events/50 GeV'))
-    #plot.add_distribution(FDistribution('jet1Eta',-2.5,2.5,20,'Leading Jet #eta','Events/bin'))
-    #plot.add_distribution(FDistribution('jet2Eta',-2.5,2.5,20,'Sub-Leading Jet #eta','Events/bin'))
     #plot.add_distribution(FDistribution('jetCSV[0]',0,1,20,'jet 1 CSV','Events'))
     #plot.add_distribution(FDistribution('jetCSV[1]',0,1,20,'jet 2 CSV','Events'))
-    #plot.add_distribution(FDistribution('fj1DoubleCSV',0,1,20,'fatjet 1 DoubleCSV','Events'))
-    #plot.add_distribution(FDistribution('isojetNBtags',-0.5,9.5,9,'N_{isoBtagjet}','Events'))
-    #global lepton
+    
+   #global lepton
     #plot.add_distribution(FDistribution('nTightLep',-0.5,4.5,5,'Number of tight lepton','Events/bin'))
     #plot.add_distribution(FDistribution('nLooseLep',-0.5,4.5,5,'Number of loose lepton','Events/bin'))
 
     #plot.add_distribution(FDistribution('nLooseElectron',-0.5,4.5,5,'Number of loose Electron','Events/bin'))
     #plot.add_distribution(FDistribution('nLooseMuon',-0.5,4.5,5,'Number of loose Muon','Events/bin'))
 
-    #fatjet
-    #plot.add_distribution(FDistribution('fj1MSD',0,600,20,'fatjet m_{SD} [GeV]','Events'))
-
-    #fjmass=VDistribution("fj1MSD",fatjetBins,"fatjet m_{SD} [GeV]","Events")
-    #plot.add_distribution(fjmass)
-
     ####
-    #plot.add_distribution(FDistribution('fj1Pt',200,700,15,'fatjet p_{T} [GeV]','Events/25 GeV'))
-    #plot.add_distribution(FDistribution('fj1Eta',-2.5,2.5,10,'fatjet #eta [GeV]','Events'))
-    #plot.add_distribution(FDistribution('top_ecf_bdt',-1,1,20,'Top BDT','Events'))
-    #plot.add_distribution(FDistribution('fj1MaxCSV',0,1,20,'fatjet max CSV','Events'))
-    #plot.add_distribution(FDistribution('fj1Tau32',0,1,20,'fatjet #tau_{32}','Events'))
-    #plot.add_distribution(FDistribution('fj1Tau32SD',0,1,20,'fatjet #tau_{32}^{SD}','Events'))
     #Cutflow
+    
     plot.add_distribution(FDistribution("1",0,2,1,"dummy","dummy"))
-    system('mkdir -p %s/%s/' %(args.outdir,region))
-    plot.draw_all(args.outdir+'/'+region+'/')
+    system('mkdir -p %s/%s/%s' %(args.outdir,args.analysis,region))
+    plot.draw_all(args.outdir+'/'+args.region+'/')
 
-def fromLimit(region):
+def fromLimit(region): 
     region=region
     print 'Plotting from fitting ntuple: ',region, ' region'
-    znunu = Process('Z(#nu#nu)+jets',root.kZjets,'Zvv_'+region,root.kCyan-9)
     zjets         = Process('Z+jets',root.kZjets,'Zll_'+region,root.kCyan-9)
     wjets         = Process('W+jets',root.kWjets,'Wlv_'+region,root.kGreen-10)
     diboson       = Process('Diboson',root.kDiboson,'Diboson_'+region,root.kYellow-9)
-    ttbar         = Process('t#bar{t}',root.kTTbar,'ttbar_'+region,root.kOrange-4)
-    #ttg           = Process('t#bar{t}#gamma',root.kTTbar,'ttbarg_'+args.region)
+    ttbar1l       = Process('t#bar{t} 1l',root.kTTbar1l,None,root.kOrange-3)
+    ttbar2l       = Process('t#bar{t} 2l',root.kTTbar2l,None,root.kOrange-5)
     singletop     = Process('Single t',root.kST,'ST_'+region,root.kRed-9)
-    #singletopg    = Process('t#gamma',root.kST,args.region)
     qcd           = Process('QCD',root.kQCD,'QCD_'+region,root.kMagenta-10)
-    #gjets         = Process('#gamma+jets',root.kGjets,args.region)
     data          = Process("Data",root.kData,'Data_'+region)
-    signale       = Process('m_{V}=1.75 TeV, m_{#chi}=1 GeV',root.kSignal,args.region)
-    processes = [qcd,diboson,singletop,wjets,ttbar,zjets]
-
-    
+    signal        = Process('m_{Zp}=1.0 TeV,m_{h}=90 GeV, m_{#chi}=400 GeV',root.kSignal)
+    processes = [qcd,diboson,singletop,wjets,zjets,ttbar1l,ttbar2l]
     if 'qcd' in region:
-        processes = [diboson,singletop,wjets,ttbar,zjets,qcd]
-    if 'zee' or 'zmm' in region:
-        processes = [qcd,diboson,singletop,ttbar,wjets,zjets]
-    if 'wen' or 'wmn' in region:
-        processes = [qcd,diboson,singletop,zjets,ttbar,wjets]
+        processes = [qcd,diboson,singletop,wjets,zjets,ttbar1l,ttbar2l]
+    if 'tee' in regisignale or 'tmm' in region:
+        processes = [qcd,diboson,singletop,wjets,zjets,ttbar1l,ttbar2l]
+    if 'wen' in region or 'wmn' in region:
+        processes = [qcd,diboson,singletop,wjets,zjets,ttbar1l,ttbar2l]
     ### ASSIGN FILES TO PROCESSES ###
-    if 'signal' in region or 'qcd' in region:
-        processes = [qcd,zjets,singletop,ttbar,diboson,wjets,znunu]
+    if 'signale' in region or 'qcd' in region:
+        processes = [qcd,diboson,singletop,wjets,zjets,ttbar1l,ttbar2l]
 
     for p in processes:
         p.add_file(f(region))
         p.additional_weight='weight'
         plot.add_process(p)
-
     #Inclusion of data
     data.add_file(f(region))
     data.additional_weight='weight'
     processes.append(data)
     plot.add_process(data)
-
-    recoilBins = [250,280,310,350,400,450,600,1000]
+    recoilBins = [250,280,310,340,370,400,430,470,510,550,590,640,690,740,790,840,900,960,1020,1090,1160,1250,1400]
     nRecoilBins = len(recoilBins)-1
-    recoil=VDistribution("met",recoilBins,"PF MET [GeV]","Events/GeV")
+    #plot.add_distribution(FDistribution('fjpt',200,700,15,'fatjet p_{T} [GeV]','Events/25 GeV'))cCc
+    #plot.add_distribution(FDistribution('fjmass',0,600,20,'fatjet m_{SD} [GeV]','Events'))
+    #plot.add_distribution(FDistribution('doubleb',0,1,20,'fatjet 1 DoubleCSV','Events'))
+    #plot.add_distribution(FDistribution('n2',0,0.5,10,'n2','Events'))
+    #plot.add_distribution(FDistributione'n2ddt56',0,0.5,10,'n2ddt56','Events'))
+    #plot.add_distribution(FDistribution('n2ddt53',0,0.5,10,'n2ddt53','Events'))
+    #recoil=VDistribution("met",recoilBins,"PF MET [GeV]","Events/GeV")
+    plot.add_distribution(FDistribution('mT',0,500,25,'Transverse Mass of W [GeV]','Events'))
     plot.add_distribution(recoil)
+
     system('mkdir -p %s/%s/' %(args.outdir,region))
     plot.draw_all(args.outdir+'/'+region+'/')
 
