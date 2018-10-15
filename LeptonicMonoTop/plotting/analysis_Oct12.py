@@ -18,7 +18,10 @@ parser.add_argument('--masscut',type=float,default=None)
 args = parser.parse_args() 
 lumi = 35800.
 blind=True
-region = args.region 
+region = args.region
+print region
+print args.outdir
+ 
 sname = argv[0]
 
 argv=[]
@@ -27,7 +30,7 @@ root.gROOT.SetBatch()
 from PandaCore.Tools.Misc import *
 import PandaCore.Tools.Functions
 from PandaCore.Drawers.plot_utility import *
-import PandaAnalysis.LeptonicMonoTop.LeptonicMonotopSelection as sel
+import PandaAnalysis.LeptonicMonoTop.LeptonicMonotopSelection_Oct14 as sel
 #import PandaAnalysis.MonoX.MonoXSelection as sel                                                                                                                                                         
 from PandaCore.Drawers.plot_utility import *
 
@@ -188,4 +191,5 @@ if args.bdtcut:
     region += ('_bdt%.2f'%(args.bdtcut)).replace('.','p').replace('-','m')
 if args.masscut:
     region += ('_mass%i'%(int(args.masscut)))
+system('mkdir -p %s/%s/' %(args.outdir,region))
 plot.draw_all(args.outdir+'/'+region+'_')

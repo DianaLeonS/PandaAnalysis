@@ -20,6 +20,7 @@ lumi = 35800.
 blind=False
 SIGNAL=False
 region = args.region
+print region
 sname = argv[0]
 
 argv=[]
